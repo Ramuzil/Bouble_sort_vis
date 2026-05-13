@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Sort Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .canvas-wrapper {
+            background: #f5f5f5;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 30px;
+            border: 2px solid #ddd;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: white;
+            border-radius: 3px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #pauseBtn {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        #pauseBtn:hover {
+            background: #ff5252;
+            transform: scale(1.05);
+        }
+
+        #resetBtn {
+            background: #4ecdc4;
+            color: white;
+        }
+
+        #resetBtn:hover {
+            background: #45b7aa;
+            transform: scale(1.05);
+        }
+
+        #startBtn {
+            background: #51cf66;
+            color: white;
+        }
+
+        #startBtn:hover {
+            background: #40c057;
+            transform: scale(1.05);
+        }
+
+        .slider-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        label {
+            font-weight: bold;
+            color: #333;
+            min-width: 60px;
+        }
+
+        input[type="range"] {
+            width: 200px;
+            cursor: pointer;
+        }
+
+        .stats {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .stat-item {
+            display: inline-block;
+            margin: 0 15px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-item span {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Bubble Sort Visualizer</h1>
+        
+        <div class="canvas-wrapper">
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <button id="startBtn">▶ Start</button>
+            <button id="pauseBtn">⏸ Pause</button>
+            <button id="resetBtn">↻ Reset</button>
+            
+            <div class="slider-group">
+                <label for="speedSlider">Speed:</label>
+                <input type="range" id="speedSlider" min="0.1" max="5" step="0.1" value="1">
+                <span id="speedValue">1.0x</span>
+            </div>
+
+            <div class="slider-group">
+                <label for="sizeSlider">Size:</label>
+                <input type="range" id="sizeSlider" min="10" max="100" step="10" value="50">
+                <span id="sizeValue">50</span>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">Comparisons: <span id="comparisons">0</span></div>
+            <div class="stat-item">Swaps: <span id="swaps">0</span></div>
+            <div class="stat-item">Status: <span id="status">Ready</span></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const sizeSlider = document.getElementById('sizeSlider');
+        const speedValue = document.getElementById('speedValue');
+        const sizeValue = document.getElementById('sizeValue');
+
+        canvas.width = 850;
+        canvas.height = 400;
+
+        let arr = [];
+        let sorting = false;
+        let paused = false;
+        let comparisons = 0;
+        let swaps = 0;
+        let speed = 1;
+        let arraySize = 50;
+        let comparing = [-1, -1];
+        let sorted = new Set();
+
+        function initArray() {
+            arr = [];
+            for (let i = 0; i < arraySize; i++) {
+                arr.push(Math.floor(Math.random() * 100) + 1);
+            }
+            comparing = [-1, -1];
+            sorted = new Set();
+            comparisons = 0;
+            swaps = 0;
+            updateStats();
+            draw();
+        }
+
+        function draw() {
+            ctx.fillStyle = '#f5f5f5';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const barWidth = canvas.width / arr.length;
+            const maxValue = Math.max(...arr);
+
+            for (let i = 0; i < arr.length; i++) {
+                const barHeight = (arr[i] / maxValue) * (canvas.height - 40);
+                const x = i * barWidth;
+                const y = canvas.height - barHeight;
+
+                let color = '#4a90e2';
+                if (sorted.has(i)) {
+                    color = '#51cf66';
+                } else if (comparing.includes(i)) {
+                    color = '#ff6b6b';
+                }
+
+                ctx.fillStyle = color;
+                ctx.fillRect(x + 1, y, barWidth - 2, barHeight);
+            }
+        }
+
+        async function bubbleSort() {
+            sorting = true;
+            startBtn.disabled = true;
+            sizeSlider.disabled = true;
+            document.getElementById('status').textContent = 'Sorting...';
+
+            const n = arr.length;
+            for (let i = 0; i < n - 1; i++) {
+                for (let j = 0; j < n - i - 1; j++) {
+                    while (paused) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+
+                    comparing = [j, j + 1];
+                    comparisons++;
+                    updateStats();
+                    draw();
+
+                    await new Promise(resolve => setTimeout(resolve, 50 / speed));
+
+                    if (arr[j] > arr[j + 1]) {
+                        [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+                        swaps++;
+                        updateStats();
+                        draw();
+                        await new Promise(resolve => setTimeout(resolve, 50 / speed));
+                    }
+                }
+                sorted.add(n - i - 1);
+            }
+            sorted.add(0);
+            comparing = [-1, -1];
+            sorting = false;
+            startBtn.disabled = false;
+            sizeSlider.disabled = false;
+            document.getElementById('status').textContent = 'Complete!';
+            draw();
+        }
+
+        function updateStats() {
+            document.getElementById('comparisons').textContent = comparisons;
+            document.getElementById('swaps').textContent = swaps;
+            speedValue.textContent = speed.toFixed(1) + 'x';
+            sizeValue.textContent = arraySize;
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!sorting) {
+                bubbleSort();
+            }
+        });
+
+        pauseBtn.addEventListener('click', () => {
+            if (sorting) {
+                paused = !paused;
+                pauseBtn.textContent = paused ? '▶ Resume' : '⏸ Pause';
+                document.getElementById('status').textContent = paused ? 'Paused' : 'Sorting...';
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            paused = false;
+            sorting = false;
+            pauseBtn.textContent = '⏸ Pause';
+            startBtn.disabled = false;
+            sizeSlider.disabled = false;
+            document.getElementById('status').textContent = 'Ready';
+            initArray();
+        });
+
+        speedSlider.addEventListener('input', (e) => {
+            speed = parseFloat(e.target.value);
+            updateStats();
+        });
+
+        sizeSlider.addEventListener('input', (e) => {
+            arraySize = parseInt(e.target.value);
+            if (!sorting) {
+                initArray();
+            }
+        });
+
+        initArray();
+    </script>
+</body>
+</html>
